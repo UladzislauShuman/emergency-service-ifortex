@@ -1,0 +1,29 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: billing-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/billing_db
+    username: postgres
+    password: <>
+    driver-class-name: org.postgresql.Driver
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc.time_zone: UTC
+  output:
+    ansi:
+      enabled: always
+
+app:
+  services:
+    user-service:
+      url: http://user-service:8080

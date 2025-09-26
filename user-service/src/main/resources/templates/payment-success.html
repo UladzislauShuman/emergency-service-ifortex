@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Payment Successful</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; text-align: center; padding-top: 5em; }
+  </style>
+</head>
+<body>
+<h1>Payment Successful!</h1>
+<p>Your subscription is now active. We are updating your account details...</p>
+<p>You will be redirected shortly.</p>
+
+<script src="/js/auth.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', async () => {
+      console.log("Payment success page loaded. Attempting to refresh token to get new permissions...");
+
+      const tokens = getToken();
+      if (tokens && tokens.refreshToken) {
+          try {
+              await refreshAccessToken(tokens.refreshToken);
+              console.log("Token refreshed successfully.");
+              window.location.replace('/account');
+          } catch (error) {
+              console.error("Failed to refresh token after payment. Redirecting to account page anyway.", error);
+              window.location.replace('/account');
+          }
+      } else {
+          console.error("No refresh token found. Cannot update permissions automatically.");
+          window.location.replace('/account');
+      }
+  });
+</script>
+</body>
+</html>

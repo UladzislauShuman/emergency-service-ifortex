@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet id="8-create-permissions-table" author="uladzislau.shuman">
+    <createTable tableName="permissions">
+      <column name="id" type="SERIAL">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="name" type="VARCHAR(100)">
+        <constraints nullable="false" unique="true"/>
+      </column>
+      <column name="description" type="TEXT"/>
+    </createTable>
+
+    <createTable tableName="roles_permissions">
+      <column name="role_id" type="INT">
+        <constraints nullable="false" foreignKeyName="fk_rp_on_role" referencedTableName="roles" referencedColumnNames="id"/>
+      </column>
+      <column name="permission_id" type="INT">
+        <constraints nullable="false" foreignKeyName="fk_rp_on_permission" referencedTableName="permissions" referencedColumnNames="id"/>
+      </column>
+      <column name="id" type="SERIAL">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+    </createTable>
+  </changeSet>
+</databaseChangeLog>

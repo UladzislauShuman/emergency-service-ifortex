@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>KYC Application Details</title>
+  <style>
+    body { font-family: sans-serif; margin: 2em; }
+    .details-container { max-width: 700px; margin: auto; }
+    .details-section { margin-bottom: 1em; }
+    .actions button { margin-right: 10px; }
+    .document-container {
+        border: 1px solid #ccc;
+        padding: 10px;
+        margin-top: 10px;
+        border-radius: 5px;
+    }
+    .document-container h4 {
+        margin-top: 0;
+    }
+    .document-image {
+        max-width: 100%;
+        height: auto;
+        border: 1px solid #ddd;
+        display: none;
+    }
+    .loading-placeholder {
+        display: block;
+        color: #888;
+    }
+  </style>
+</head>
+<body>
+<div class="details-container">
+  <h1>Application Details</h1>
+  <a href="/admin/kyc-dashboard">Back to Dashboard</a>
+  <hr>
+  <div id="details-content"><p>Loading details...</p></div>
+  <div id="actions-container" class="actions"></div>
+</div>
+
+<script src="/js/auth.js"></script>
+<script>
+  async function loadAndDisplayImage(imgElementId, placeholderId, documentType, applicationId) {
+      const imgElement = document.getElementById(imgElementId);
+      const placeholderElement = document.getElementById(placeholderId);
+
+      try {
+          const response = await fetchWithAuth(`/admin/kyc/applications/${applicationId}/documents/${documentType}`);
+          if (!response.ok) throw new Error(`Failed to load document (${response.status})`);
+
+          const imageBlob = await response.blob();
+          const imageUrl = URL.createObjectURL(imageBlob);
+
+          imgElement.src = imageUrl;
+          imgElement.style.display = 'block';
+          placeholderElement.style.display = 'none';
+
+      } catch (error) {
+          console.error(`Error loading ${documentType}:`, error);
+          placeholderElement.textContent = `Could not load ${documentType}.`;
+          placeholderElement.style.color = 'red';
+      }
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const appId = urlParams.get('appId');
+      if (!appId) {
+          document.getElementById('details-content').innerHTML = '<p style="color:red">Application ID is missing.</p>';
+          return;
+      }
+
+      try {
+          const response = await fetchWithAuth(`/admin/kyc/applications/${appId}`);
+          if (!response.ok) throw new Error('Could not fetch application details.');
+
+          const app = await response.json();
+
+          document.getElementById('details-content').innerHTML = `
+              <h3>Applicant Information</h3>
+              <p><strong>Name:</strong> ${app.user.fullName}</p>
+              <p><strong>Contact Email:</strong> ${app.user.email}</p>
+              <p><strong>Phone:</strong> ${app.user.phone || 'N/A'}</p>
+              <p><strong>Submitted At:</strong> ${new Date(app.submittedAt).toLocaleString()}</p>
+              <h3>Submitted Documents</h3>
+              <div class="document-container">
+                  <h4>Identity Document</h4>
+                  <span id="identity-placeholder" class="loading-placeholder">Loading image...</span>
+                  <img id="identity-image" class="document-image" alt="Identity Document">
+              </div>
+              <div class="document-container">
+                  <h4>Selfie with Document</h4>
+                  <span id="selfie-placeholder" class="loading-placeholder">Loading image...</span>
+                  <img id="selfie-image" class="document-image" alt="Selfie with Document">
+              </div>
+              <div class="document-container">
+                  <h4>Medical Certificate</h4>
+                  <span id="certificate-placeholder" class="loading-placeholder">Loading image...</span>
+                  <img id="certificate-image" class="document-image" alt="Medical Certificate">
+              </div>
+          `;
+
+          loadAndDisplayImage('identity-image', 'identity-placeholder', 'identity', appId);
+          loadAndDisplayImage('selfie-image', 'selfie-placeholder', 'selfie', appId);
+          loadAndDisplayImage('certificate-image', 'certificate-placeholder', 'certificate', appId);
+
+          const homeDetailsResp = await fetchWithAuth('/home/details');
+          const homeDetails = await homeDetailsResp.json();
+          const permissions = new Set(homeDetails.permissions);
+
+          if (permissions.has('admin:kyc:manage')) {
+              document.getElementById('actions-container').innerHTML = `
+                  <button onclick="approveApplication(${appId})">Approve</button>
+                  <button onclick="rejectApplication(${appId})">Reject</button>
+              `;
+          }
+
+      } catch (e) {
+          document.getElementById('details-content').innerHTML = `<p style="color:red;">Error: ${e.message}</p>`;
+      }
+  });
+
+  async function approveApplication(appId) {
+      const workEmail = prompt("Please enter the new corporate email for the paramedic:");
+      if (!workEmail) return;
+
+      const workEmailPassword = prompt(`Please enter the password for the email account "${workEmail}". This will be sent to the applicant.`);
+      if (!workEmailPassword) return;
+
+      if (confirm(`Are you sure you want to approve this application and create a user with email ${workEmail}?`)) {
+          try {
+              const response = await fetchWithAuth(`/admin/kyc/applications/${appId}`, {
+                  method: 'PATCH',
+                  body: JSON.stringify({
+                      status: 'APPROVED',
+                      approvalData: {
+                          workEmail: workEmail,
+                          workEmailPassword: workEmailPassword
+                      }
+                  })
+              });
+
+              const data = await response.json();
+              if (!response.ok) throw new Error(data.message);
+
+              alert(data.message || 'Application approved!');
+              window.location.href = '/admin/kyc-dashboard';
+          } catch (error) {
+              alert('Error approving application: ' + error.message);
+          }
+      }
+  }
+
+  async function rejectApplication(appId) {
+      const reason = prompt("Please provide a reason for rejection:");
+      if (reason && reason.trim() !== '') {
+          try {
+              const response = await fetchWithAuth(`/admin/kyc/applications/${appId}`, {
+                  method: 'PATCH',
+                  body: JSON.stringify({
+                      status: 'REJECTED',
+                      reason: reason
+                  })
+              });
+
+              const data = await response.json();
+              if (!response.ok) throw new Error(data.message);
+
+              alert(data.message || 'Application rejected!');
+              window.location.href = '/admin/kyc-dashboard';
+          } catch(error) {
+              alert('Error rejecting application: ' + error.message);
+          }
+      } else if (reason !== null) {
+          alert('Rejection reason cannot be empty.');
+      }
+  }
+</script>
+</body>
+</html>

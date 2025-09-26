@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Logging in...</title>
+  <script src="/js/auth.js"></script>
+</head>
+<body>
+<p>Please wait, logging you in...</p>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+      const urlParams = new URLSearchParams(window.location.search);
+      const accessToken = urlParams.get('accessToken');
+      const refreshToken = urlParams.get('refreshToken');
+      const userJson = urlParams.get('user');
+
+      if (accessToken && refreshToken && userJson) {
+          console.log("OAuth2 tokens received, saving to localStorage.");
+          saveToken({ accessToken, refreshToken });
+
+          try {
+            const user = JSON.parse(decodeURIComponent(userJson));
+            saveUser(user);
+          } catch (e) {
+            console.error("Failed to parse user data from URL", e);
+          }
+
+          window.location.replace('/home');
+      } else {
+          console.error("OAuth2 success page loaded without required tokens or user data.");
+          window.location.replace('/login?error=Authentication%20failed');
+      }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+application:
+  frontend:
+    base-url: ${APP_FRONTEND_BASE_URL:http://localhost:8088}
+    admin-reset-password-path: "/password/reset/form"
+    subscription-success-url: ${application.frontend.base-url}/payment/success
+    subscription-cancel-url: ${application.frontend.base-url}/payment/cancel

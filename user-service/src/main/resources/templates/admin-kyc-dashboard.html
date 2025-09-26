@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>KYC Dashboard</title>
+  <style>
+    body { font-family: sans-serif; margin: 2em; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+    tr:nth-child(even) { background-color: #f9f9f9; }
+    .pagination button { margin: 0 5px; }
+  </style>
+</head>
+<body>
+<h1>Pending KYC Applications</h1>
+<div id="applications-container">
+  <p>Loading applications...</p>
+</div>
+<div id="pagination-controls"></div>
+
+<script src="/js/auth.js"></script>
+<script>
+  let currentPage = 0;
+  const pageSize = 20;
+
+  async function loadApplications(page = 0) {
+      const container = document.getElementById('applications-container');
+      const pagination = document.getElementById('pagination-controls');
+      container.innerHTML = '<p>Loading...</p>';
+      pagination.innerHTML = '';
+
+      try {
+          const response = await fetchWithAuth(`/admin/kyc/applications?page=${page}&size=${pageSize}`);
+          if (!response.ok) throw new Error('Failed to load applications');
+
+          const pageData = await response.json();
+          if (pageData.empty) {
+              container.innerHTML = '<p>No pending applications found.</p>';
+              return;
+          }
+
+          const table = `
+              <table>
+                  <thead>
+                      <tr>
+                          <th>Application ID</th>
+                          <th>User Name</th>
+                          <th>Email</th>
+                          <th>Submitted At</th>
+                          <th>Action</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                      ${pageData.content.map(app => `
+                          <tr>
+                              <td>${app.applicationId}</td>
+                              <td>${app.user.fullName}</td>
+                              <td>${app.user.email}</td>
+                              <td>${new Date(app.submittedAt).toLocaleString()}</td>
+                              <td><a href="/admin/kyc-details?appId=${app.applicationId}">View Details</a></td>
+                          </tr>
+                      `).join('')}
+                  </tbody>
+              </table>
+          `;
+          container.innerHTML = table;
+
+          renderPagination(pageData);
+
+      } catch (e) {
+          container.innerHTML = `<p style="color:red;">Error: ${e.message}</p>`;
+      }
+  }
+
+  function renderPagination(pageData) {
+      const pagination = document.getElementById('pagination-controls');
+      let html = '';
+      if (!pageData.first) {
+           html += `<button onclick="loadApplications(${pageData.number - 1})">Previous</button>`;
+      }
+      html += `<span>Page ${pageData.number + 1} of ${pageData.totalPages}</span>`;
+      if (!pageData.last) {
+          html += `<button onclick="loadApplications(${pageData.number + 1})">Next</button>`;
+      }
+      pagination.innerHTML = html;
+  }
+
+  document.addEventListener('DOMContentLoaded', () => loadApplications());
+</script>
+</body>
+</html>

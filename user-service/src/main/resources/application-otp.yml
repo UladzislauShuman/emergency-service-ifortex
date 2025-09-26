@@ -1,0 +1,10 @@
+application:
+  security:
+    otp:
+      length: 6
+      resend-cooldown-seconds: 60
+      expiration:
+        email-verification: 24h
+        login-2fa: 10m
+        password-reset: 15m
+        email-change: 10m

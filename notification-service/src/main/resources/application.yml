@@ -1,0 +1,18 @@
+server:
+  port: 8081
+
+spring:
+  profiles:
+    active: email
+  application:
+    name: notification-service
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST}
+    port: 5672
+    username: guest
+    password: guest
+  sendgrid:
+    api-key: ${SENDGRID_API_KEY}
+  output:
+    ansi:
+      enabled: always

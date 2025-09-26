@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet id="1-modify-fk-paramedic-applications-on-user" author="uladzislau.shuman">
+    <dropForeignKeyConstraint
+      baseTableName="user_tokens"
+      constraintName="fk_user_tokens_on_user"/>
+
+    <addForeignKeyConstraint
+      baseTableName="user_tokens"
+      baseColumnNames="user_id"
+      constraintName="fk_user_tokens_on_user"
+      referencedTableName="users"
+      referencedColumnNames="id"
+      onDelete="CASCADE"/>
+  </changeSet>
+
+</databaseChangeLog>

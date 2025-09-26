@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Verify Application Email</title>
+  <style>
+    .resend-container { margin-top: 15px; font-size: 0.9em; }
+    .resend-container a { color: #007bff; text-decoration: none; }
+    .resend-container a.disabled { color: #6c757d; cursor: not-allowed; text-decoration: none; }
+    .cooldown-timer { color: #6c757d; margin-left: 5px; }
+  </style>
+</head>
+<body>
+<h2>Verify Your Application Email</h2>
+<p>We've sent a verification code to your email address: <strong th:text="${email}"></strong></p>
+<p>Please enter the code to confirm your application.</p>
+
+<div id="form-container">
+  <form id="verify-form">
+    <div id="error-message" style="color: red;"></div>
+    <div id="success-message" style="color: green;"></div>
+    <input type="hidden" id="email" name="email" th:value="${email}">
+    <div>
+      <label for="otp-code">Verification Code:</label>
+      <input type="text" id="otp-code" name="otpCode" required>
+    </div>
+    <button type="submit">Verify Application</button>
+  </form>
+  <div class="resend-container">
+    <a href="#" id="resend-link" class="disabled">Resend Code</a>
+    <span id="cooldown-timer" class="cooldown-timer"></span>
+  </div>
+</div>
+<div id="final-message" style="display: none;"></div>
+
+<script>
+  const COOLDOWN_SECONDS = 60;
+  const resendLink = document.getElementById('resend-link');
+  const timerSpan = document.getElementById('cooldown-timer');
+  let cooldownInterval;
+
+  function startCooldown() {
+      let timeLeft = COOLDOWN_SECONDS;
+      resendLink.classList.add('disabled');
+      timerSpan.textContent = `(wait ${timeLeft}s)`;
+      cooldownInterval = setInterval(() => {
+          timeLeft--;
+          timerSpan.textContent = `(wait ${timeLeft}s)`;
+          if (timeLeft <= 0) {
+              clearInterval(cooldownInterval);
+              timerSpan.textContent = '';
+              resendLink.classList.remove('disabled');
+          }
+      }, 1000);
+  }
+  document.addEventListener('DOMContentLoaded', startCooldown);
+
+  resendLink.addEventListener('click', async function(event) {
+      event.preventDefault();
+      if (resendLink.classList.contains('disabled')) return;
+
+      const email = document.getElementById('email').value;
+      const errorDiv = document.getElementById('error-message');
+      const successDiv = document.getElementById('success-message');
+      errorDiv.textContent = '';
+      successDiv.textContent = '';
+
+      try {
+          const response = await fetch('/api/auth/otp/resend', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: email, otpType: 'EMAIL_VERIFICATION' })
+          });
+          if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.message || 'Failed to resend code.');
+          }
+          successDiv.textContent = 'A new code has been sent.';
+          startCooldown();
+      } catch (error) {
+          errorDiv.textContent = error.message;
+      }
+  });
+
+  document.getElementById('verify-form').addEventListener('submit', async function(event) {
+      event.preventDefault();
+      const email = document.getElementById('email').value;
+      const otpCode = document.getElementById('otp-code').value;
+      const errorDiv = document.getElementById('error-message');
+      const finalMessageDiv = document.getElementById('final-message');
+
+      try {
+          const response = await fetch('/api/public/kyc/applications/verification', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: email, otpCode: otpCode })
+          });
+          const data = await response.json();
+          if (!response.ok) {
+              throw new Error(data.message || 'Verification failed.');
+          }
+          document.getElementById('form-container').style.display = 'none';
+          finalMessageDiv.style.display = 'block';
+          finalMessageDiv.innerHTML = `<h2>Thank You!</h2><p>${data.message}</p><p><a href="/">Back to Home</a></p>`;
+
+          finalMessageDiv.innerHTML += `<p>You can check your application status here: <a href="/paramedic/application-status?email=${encodeURIComponent(email)}">Check Status</a></p>`;
+      } catch (error) {
+          errorDiv.textContent = error.message;
+      }
+  });
+</script>
+</body>
+</html>

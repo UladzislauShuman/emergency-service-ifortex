@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="2-insert-roles" author="uladzislau.shuman">
+        <preConditions onFail="MARK_RAN">
+            <tableIsEmpty tableName="roles"/>
+        </preConditions>
+        <insert tableName="roles"><column name="name" value="ROLE_CLIENT"/></insert>
+        <insert tableName="roles"><column name="name" value="ROLE_PARAMEDIC"/></insert>
+        <insert tableName="roles"><column name="name" value="ROLE_ADMIN"/></insert>
+        <insert tableName="roles"><column name="name" value="ROLE_SUPER_ADMIN"/></insert>
+    </changeSet>
+
+    <changeSet id="3-insert-default-users" author="uladzislau.shuman">
+        <preConditions onFail="MARK_RAN">
+            <tableIsEmpty tableName="users"/>
+        </preConditions>
+
+        <insert tableName="users">
+            <column name="full_name" value="Super Admin"/>
+            <column name="email" value="superadmin@example.com"/>
+            <column name="phone" value="+10000000000"/>
+            <column name="password" value="$2a$10$KxJi2uWKkurtKSjin1KvuuYbG/uYLAK1ODfviyLf6.qAMgIQ4U.mm"/>
+            <column name="status" value="ACTIVE"/>
+            <column name="is2faenabled" valueBoolean="false"/>
+            <column name="role_id" valueComputed="(SELECT id FROM roles WHERE name = 'ROLE_SUPER_ADMIN')"/>
+            <column name="is_password_temporary" valueBoolean="false"/>
+        </insert>
+
+        <insert tableName="users">
+            <column name="full_name" value="Admin User"/>
+            <column name="email" value="admin@example.com"/>
+            <column name="phone" value="+10000000001"/>
+            <column name="password" value="$2a$10$wM4Z2XcrMXjA0tMGnZepn.lfYspdmfbiuh7X8v2yEJqQbmKjiFPdi"/>
+            <column name="status" value="ACTIVE"/>
+            <column name="is2faenabled" valueBoolean="false"/>
+            <column name="role_id" valueComputed="(SELECT id FROM roles WHERE name = 'ROLE_ADMIN')"/>
+            <column name="is_password_temporary" valueBoolean="false"/>
+        </insert>
+
+    </changeSet>
+</databaseChangeLog>

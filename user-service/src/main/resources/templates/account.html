@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Account</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 2em; background-color: #f4f4f9; color: #333; }
+    .container { max-width: 800px; margin: auto; background: white; padding: 2em; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    h1 { font-size: 2em; }
+    h2 { font-size: 1.5em; color: #333; border-bottom: 1px solid #eee; padding-bottom: 0.5em; margin-bottom: 1em;}
+    hr { border: 0; height: 1px; background: #ddd; margin: 1.5em 0; }
+    .plan, .subscription-info { border: 1px solid #e0e0e0; padding: 1.5em; margin-bottom: 1.5em; border-radius: 8px; }
+    button { padding: 0.8em 1.5em; border: none; border-radius: 5px; cursor: pointer; font-size: 1em; font-weight: 600; transition: background-color 0.2s ease; }
+    .subscribe-btn { background-color: #007bff; color: white; }
+    .subscribe-btn:hover { background-color: #0056b3; }
+    .manage-btn { background-color: #6c757d; color: white; }
+    .manage-btn:hover { background-color: #5a6268; }
+    .cancel-btn { background-color: #ffc107; color: black; }
+    .cancel-btn:hover { background-color: #e0a800; }
+    .logout-btn { background-color: #dc3545; color: white; float: right; }
+    .logout-btn:hover { background-color: #c82333; }
+    .status-active { color: #28a745; font-weight: bold; }
+    p { line-height: 1.6; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Welcome, <span id="user-fullname">User</span>!</h1>
+  <button id="logout-button" class="logout-btn">Logout</button>
+  <hr>
+
+  <div id="subscribe-section" class="hidden">
+    <p>You don't have an active subscription. Please choose a plan to subscribe.</p>
+    <h2>Available Plans</h2>
+    <div id="plans-container">
+    </div>
+  </div>
+
+  <div id="manage-section" class="hidden">
+    <div class="subscription-info">
+      <h2>My Subscription</h2>
+      <div id="subscription-details">
+      </div>
+      <br/>
+      <button id="customer-portal-btn" class="manage-btn">Manage My Subscription</button>
+    </div>
+  </div>
+
+  <div id="admin-section" class="hidden">
+    <div class="subscription-info">
+      <h2>Administrator Account</h2>
+      <p>Your permissions are managed by your administrative role. Subscription plans are not applicable for this account type.</p>
+    </div>
+  </div>
+
+</div>
+
+<script src="/js/auth.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', async () => {
+      if (!isLoggedIn()) {
+          window.location.href = '/login';
+          return;
+      }
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const fromStripe = urlParams.get('from') === 'stripe-portal';
+
+      if (fromStripe) {
+          console.log("Returned from Stripe Portal. Forcing token refresh to update permissions.");
+          const tokens = getToken();
+          if (tokens && tokens.refreshToken) {
+              try {
+                  await refreshAccessToken(tokens.refreshToken);
+                  console.log("Token refreshed successfully.");
+                  window.history.replaceState({}, document.title, "/account");
+              } catch (error) {
+                  console.error("Failed to refresh token after returning from Stripe.", error);
+                  return;
+              }
+          }
+      }
+
+      try {
+          const response = await fetchWithAuth('/subscription/details');
+          if (!response.ok) throw new Error('Failed to load subscription details.');
+
+          const details = await response.json();
+          renderPage(details);
+
+       } catch (error) {
+        console.error(error);
+        let errorMessage = 'Could not load your account details. Please try logging in again.';
+
+        if (error.response && typeof error.response.json === 'function') {
+            try {
+                const errorData = await error.response.json();
+                errorMessage += `<br><small>Server says: ${errorData.message || 'No details'}</small>`;
+            } catch (e) { /* ignore if response is not json */ }
+        } else if (error.message) {
+            errorMessage += `<br><small>Details: ${error.message}</small>`;
+        }
+
+        document.querySelector('.container').innerHTML = `<h1>Error</h1><p>${errorMessage}</p>`;
+    }
+  });
+
+  function renderPage(details) {
+      document.getElementById('user-fullname').textContent = details.user.fullName || 'User';
+
+      const permissions = getPermissions();
+
+      if (permissions.has('subscription:create')) {
+          document.getElementById('subscribe-section').classList.remove('hidden');
+          const plansContainer = document.getElementById('plans-container');
+          if (!details.availablePlans || details.availablePlans.length === 0) {
+              plansContainer.innerHTML = '<p>No plans available at the moment.</p>';
+          } else {
+              plansContainer.innerHTML = details.availablePlans.map(plan => `
+                  <div class="plan">
+                      <h3>${plan.productName}</h3>
+                      <p>
+                          <strong>${plan.amount.toFixed(2)}</strong>
+                          <span>${plan.currency.toUpperCase()}</span> / <span>${plan.interval}</span>
+                      </p>
+                      <button class="subscribe-btn" data-price-id="${plan.priceId}">Subscribe</button>
+                  </div>
+              `).join('');
+          }
+      } else if (permissions.has('subscription:manage')) {
+          document.getElementById('manage-section').classList.remove('hidden');
+          const subDetails = details.activeSubscription;
+          if (subDetails) {
+              const endsAtDate = new Date(subDetails.endsAt).toLocaleDateString('en-US', {
+                  year: 'numeric', month: 'long', day: 'numeric'
+              });
+              document.getElementById('subscription-details').innerHTML = `
+                  <p><strong>Status:</strong> <span class="status-active">Active</span></p>
+                  <p><strong>Current Plan:</strong> <span>${subDetails.planName}</span></p>
+                  <p><strong>Next billing date:</strong> <span>${endsAtDate}</span></p>
+              `;
+          }
+      } else {
+          document.getElementById('admin-section').classList.remove('hidden');
+      }
+  }
+
+  document.getElementById('logout-button').addEventListener('click', logout);
+
+  document.querySelector('.container').addEventListener('click', async (event) => {
+      const target = event.target;
+
+      if (target.matches('.subscribe-btn')) {
+          target.disabled = true;
+          const priceId = target.dataset.priceId;
+          try {
+              const response = await fetchWithAuth('/subscription/checkout-sessions', {
+                  method: 'POST',
+                  body: JSON.stringify({ priceId })
+              });
+              const data = await response.json();
+              if (data.redirectUrl) {
+                  window.location.href = data.redirectUrl;
+              }
+          } catch (e) {
+              alert('Could not start subscription. Please try again.');
+              target.disabled = false;
+          }
+      }
+
+      if (target.id === 'customer-portal-btn') {
+          target.disabled = true;
+          try {
+              const response = await fetchWithAuth('/subscription/portal-sessions', { method: 'POST' });
+              const data = await response.json();
+              if (data.redirectUrl) {
+                  window.location.href = data.redirectUrl;
+              }
+          } catch (e) {
+              alert('Could not open customer portal. Please try again.');
+              target.disabled = false;
+          }
+      }
+  });
+</script>
+</body>
+</html>

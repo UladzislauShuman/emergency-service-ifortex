@@ -1,0 +1,6 @@
+stripe:
+  api-secret-key: <api-secret-key>
+  webhook-secret: <webhook-secret>
+  plan-mapping:
+    ${price-id1}: "basic_monthly"
+    ${price-id2}: "basic_yearly"

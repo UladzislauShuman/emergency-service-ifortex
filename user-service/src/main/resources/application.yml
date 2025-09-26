@@ -1,0 +1,94 @@
+application:
+  retry:
+    rabbit:
+      max-attempts: 3
+      initial-delay: 200
+      multiplier: 2.0
+    sendgrid:
+      max-attempts: 3
+      initial-delay: 500
+      multiplier: 2.0
+    database:
+      max-attempts: 3
+      initial-delay: 200
+      multiplier: 2.0
+    redis:
+      max-attempts: 3
+      initial-delay: 200
+      multiplier: 2.0
+  security:
+    temp-password:
+      expiration-hours: 24
+    password-reset-token:
+      expiration: 1h
+    jwt:
+      secret-key: ${APPLICATION_SECURITY_JWT_SECRET-KEY:<key>}
+      access-token:
+        expiration: 900000
+      refresh-token:
+        expiration: 604800000
+  services:
+    billing-service:
+      url: http://billing-service:8082
+
+spring:
+  profiles:
+    active:
+      - email
+      - otp
+      - frontend
+      - azure
+  application:
+    name: user-service
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: 6379
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/auth_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    enabled: true
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 30MB
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+  jpa:
+    hibernate:
+      ddl-auto: validate #update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc.time_zone: UTC
+
+  output:
+    ansi:
+      enabled: always
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: <google-client-id>
+            client-secret: <google-client-secret>
+            scope:
+              - openid
+              - email
+              - profile
+            redirect-uri: "${application.frontend.base-url}/login/oauth2/code/{registrationId}"
+logging:
+  level:
+    ifortex.shumanapp.uladzislau.authservice: DEBUG
+
+server:
+  forward-headers-strategy: framework

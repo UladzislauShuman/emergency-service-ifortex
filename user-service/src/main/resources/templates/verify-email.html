@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Verify Email</title>
+  <style>
+    .resend-container {
+        margin-top: 15px;
+        font-size: 0.9em;
+    }
+    .resend-container a {
+        color: #007bff;
+        text-decoration: none;
+    }
+    .resend-container a.disabled {
+        color: #6c757d;
+        cursor: not-allowed;
+        text-decoration: none;
+    }
+    .cooldown-timer {
+        color: #6c757d;
+        margin-left: 5px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Verify Your Email</h2>
+<p>We've sent a verification code to your email address: <strong th:text="${email}"></strong></p>
+<p>Please enter the code below to activate your account.</p>
+
+<form id="verify-form">
+  <div id="error-message" style="color: red; margin-bottom: 10px;"></div>
+  <div id="success-message" style="color: green; margin-bottom: 10px;"></div>
+  <input type="hidden" id="email" name="email" th:value="${email}">
+  <div>
+    <label for="otp-code">Verification Code:</label>
+    <input type="text" id="otp-code" name="otpCode" required minlength="6" maxlength="6">
+  </div>
+  <br>
+  <button type="submit">Verify Account</button>
+</form>
+
+<div class="resend-container">
+  <a href="#" id="resend-link" class="disabled">Resend Code</a>
+  <span id="cooldown-timer" class="cooldown-timer"></span>
+</div>
+
+
+<script src="/js/auth.js"></script>
+<script>
+  const COOLDOWN_SECONDS = 60;
+  const resendLink = document.getElementById('resend-link');
+  const timerSpan = document.getElementById('cooldown-timer');
+  let cooldownInterval;
+
+  function startCooldown() {
+      let timeLeft = COOLDOWN_SECONDS;
+      resendLink.classList.add('disabled');
+      timerSpan.textContent = `(wait ${timeLeft}s)`;
+
+      cooldownInterval = setInterval(() => {
+          timeLeft--;
+          timerSpan.textContent = `(wait ${timeLeft}s)`;
+          if (timeLeft <= 0) {
+              clearInterval(cooldownInterval);
+              timerSpan.textContent = '';
+              resendLink.classList.remove('disabled');
+          }
+      }, 1000);
+  }
+  document.addEventListener('DOMContentLoaded', startCooldown);
+
+  resendLink.addEventListener('click', async function(event) {
+      event.preventDefault();
+      if (resendLink.classList.contains('disabled')) {
+          return;
+      }
+
+      const email = document.getElementById('email').value;
+      const errorMessageDiv = document.getElementById('error-message');
+      const successMessageDiv = document.getElementById('success-message');
+      errorMessageDiv.textContent = '';
+      successMessageDiv.textContent = '';
+
+      try {
+          const response = await fetch('/api/auth/otp/resend', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  email: email,
+                  otpType: 'EMAIL_VERIFICATION'
+              })
+          });
+
+          if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.message || 'Failed to resend code.');
+          }
+
+          successMessageDiv.textContent = 'A new code has been sent to your email.';
+          startCooldown();
+
+      } catch (error) {
+          errorMessageDiv.textContent = error.message;
+      }
+  });
+
+  document.getElementById('verify-form').addEventListener('submit', async function(event) {
+      event.preventDefault();
+      const email = document.getElementById('email').value;
+      const otpCode = document.getElementById('otp-code').value;
+      const errorMessageDiv = document.getElementById('error-message');
+
+      try {
+          const response = await fetch('/api/auth/verification/email', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: email, otpCode: otpCode })
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+              throw new Error(data.message || 'Verification failed.');
+          }
+
+          document.getElementById('verify-form').style.display = 'none';
+          document.querySelector('.resend-container').style.display = 'none';
+
+          const successContainer = document.createElement('div');
+          successContainer.style.color = 'green';
+          successContainer.innerHTML = `
+              <h2>Verification Successful!</h2>
+              <p>${data.message}</p>
+              <p><a href="/login">Click here to log in</a></p>
+          `;
+          document.body.appendChild(successContainer);
+
+      } catch (error) {
+          errorMessageDiv.textContent = error.message;
+      }
+  });
+</script>
+</body>
+</html>

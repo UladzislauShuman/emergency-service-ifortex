@@ -1,0 +1,6 @@
+application:
+  retry:
+    rabbit:
+      max-attempts: 1
+      initial-delay: 10
+      multiplier: 1.0

@@ -1,0 +1,157 @@
+version: '3.8'
+
+services:
+  user-db:
+    image: postgres:15-alpine
+    container_name: user_postgres_db
+    environment:
+      - TZ=UTC
+      - PGTZ=UTC
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=12341234
+      - POSTGRES_DB=user_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - user_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d user_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  billing-db:
+    image: postgres:15-alpine
+    container_name: billing_postgres_db
+    environment:
+      - TZ=UTC
+      - PGTZ=UTC
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=12341234
+      - POSTGRES_DB=billing_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - billing_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d billing_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: main_redis_cache
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: main_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq/
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running", "-q"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    container_name: main_azurite_storage
+    ports:
+      - "10000:10000"
+    volumes:
+      - azurite_data:/data
+    restart: unless-stopped
+
+  user-service:
+    build:
+      context: .
+      dockerfile: ./user-service/Dockerfile
+    container_name: user_service_app
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://user-db:5432/user_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=12341234
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - AZURE_STORAGE_CONNECTION_STRING=<key>
+      - APPLICATION_SECURITY_JWT_SECRET-KEY=<key>
+      - SPRING_PROFILES_ACTIVE=email,otp,frontend,azure
+      - JAVA_OPTS=-Duser.timezone=UTC
+      - APP_FRONTEND_BASE_URL=http://localhost:8088
+    depends_on:
+      user-db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      azurite: { condition: service_started }
+    restart: on-failure
+
+  billing-service:
+    build:
+      context: .
+      dockerfile: ./billing-service/Dockerfile
+    container_name: billing_service_app
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://billing-db:5432/billing_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=12341234
+      - APP_SERVICES_USER-SERVICE_URL=http://api-gateway:8088
+      - SPRING_PROFILES_ACTIVE=billing,frontend
+      - JAVA_OPTS=-Duser.timezone=UTC
+      - APP_FRONTEND_BASE_URL=http://localhost:8088
+    depends_on:
+      billing-db: { condition: service_healthy }
+      user-service: { condition: service_started }
+    restart: on-failure
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: ./notification-service/Dockerfile
+    container_name: notification_service_app
+    environment:
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SENDGRID_API_KEY=<key>
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+    restart: on-failure
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: ./api-gateway/Dockerfile
+    container_name: api_gateway_app
+    ports:
+      - "8088:8088"
+    environment:
+      - APPLICATION_SECURITY_JWT_SECRET-KEY=<key>
+      - SPRING_APPLICATION_NAME=api-gateway
+      - APP_SERVICES_USER-SERVICE_URL=http://user-service:8080
+      - APP_SERVICES_BILLING-SERVICE_URL=http://billing-service:8082
+    depends_on:
+      - user-service
+      - billing-service
+    restart: on-failure
+
+volumes:
+  user_postgres_data:
+  billing_postgres_data:
+  redis_data:
+  rabbitmq_data:
+  azurite_data:

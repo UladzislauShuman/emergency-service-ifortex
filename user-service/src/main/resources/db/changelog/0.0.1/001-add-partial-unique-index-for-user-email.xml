@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="1" author="uladzislau.shuman">
+        <sql dbms="postgresql">
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_if_not_deleted
+            ON users (email)
+            WHERE status &lt;&gt; 'DELETED';
+        </sql>
+    </changeSet>
+</databaseChangeLog>

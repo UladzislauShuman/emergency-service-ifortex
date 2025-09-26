@@ -1,0 +1,44 @@
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### MY ###
+QA.txt
+dont_read.txt
+dont_read.md
+/src/main/java/ifortex/ProjectAggregator.java
+/auth-service/src/main/java/ifortex/ProjectAggregator.java.DS_Store
+/auth-service/src/main/java/ifortex/ProjectAggregator.java
+*.DS_Store
+/util/
+/user-service/src/main/java/ifortex/shuman/uladzislau/authservice/ProjectAggregator.java
+/billing-service/src/main/java/ifortex/shuman/uladzislau/billing/ProjectAggregator.java

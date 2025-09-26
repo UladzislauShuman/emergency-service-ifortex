@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Home</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 2em; background-color: #f4f4f9; color: #333; }
+    .container { max-width: 800px; margin: auto; background: white; padding: 2em; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    h1 { font-size: 2em; }
+    h3 { font-size: 1.2em; color: #555; border-bottom: 1px solid #eee; padding-bottom: 0.5em; margin-top: 1.5em;}
+    button { padding: 0.8em 1.5em; border: none; border-radius: 5px; cursor: pointer; font-size: 1em; font-weight: 600; transition: background-color 0.2s ease; }
+    .logout-btn { background-color: #dc3545; color: white; float: right; }
+    .logout-btn:hover { background-color: #c82333; }
+    p { line-height: 1.6; }
+    .status-info { border: 1px solid #e0e0e0; padding: 1em; margin-top: 1em; border-radius: 8px; }
+    .status-pending { color: #007bff; }
+    .status-approved { color: #28a745; }
+    .status-rejected { color: #dc3545; }
+    a { color: #007bff; text-decoration: none; font-weight: 600;}
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Welcome, <span id="user-fullname">User</span>!</h1>
+  <button id="logout-button" class="logout-btn">Logout</button>
+
+  <div id="error-message" style="color: red; margin: 1em 0;"></div>
+
+  <div id="content">
+    <p>Loading your profile...</p>
+  </div>
+
+  <div id="google-link-section" style="margin-top: 20px;"></div>
+  <div id="kyc-status-section" style="margin-top: 20px;"></div>
+  <div id="navigation-links"></div>
+</div>
+
+<script src="/js/auth.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', async () => {
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const error = urlParams.get('error');
+      if (error) {
+          document.getElementById('error-message').textContent = decodeURIComponent(error);
+          window.history.replaceState({}, document.title, "/home");
+      }
+
+      if (!isLoggedIn()) {
+          window.location.href = '/login';
+          return;
+      }
+
+      const contentDiv = document.getElementById('content');
+      try {
+          // Используем fetchWithAuth и URL без /gateway
+          const response = await fetchWithAuth('/home/details');
+          if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.message || 'Failed to fetch user details.');
+          }
+
+          const details = await response.json();
+          const permissions = new Set(details.permissions);
+
+          if (permissions.has('paramedic:application:submit')) {
+              window.location.href = '/paramedic/kyc-form';
+              return;
+          }
+
+          renderHomePage(details);
+
+      } catch (error) {
+          console.error(error);
+          document.title = "Error";
+          contentDiv.innerHTML = `<p style="color: red;">Could not load user data. Error: ${error.message}</p>`;
+      }
+  });
+
+  function renderHomePage(details) {
+      const user = details.user;
+      const permissions = new Set(details.permissions);
+      const contentDiv = document.getElementById('content');
+      const navDiv = document.getElementById('navigation-links');
+      const kycDiv = document.getElementById('kyc-status-section');
+
+      document.getElementById('user-fullname').textContent = user.fullName || 'User';
+
+      contentDiv.innerHTML = `
+          <h3>Your Details</h3>
+          <p><strong>Email:</strong> ${user.email}</p>
+          <p><strong>Role:</strong> ${user.role}</p>
+      `;
+
+      renderGoogleLink(details);
+      if(navDiv) navDiv.innerHTML = '';
+      if(kycDiv) kycDiv.innerHTML = '';
+
+     if (user.role === 'ROLE_CLIENT') {
+          renderClientContent(details, permissions, navDiv);
+      } else if (user.role === 'ROLE_ADMIN' || user.role === 'ROLE_SUPER_ADMIN') {
+          renderAdminContent(details, permissions, navDiv);
+      }
+  }
+
+  function renderClientContent(details, permissions, navDiv) {
+      if (navDiv) {
+          navDiv.innerHTML = '<p><a href="/account">Manage Subscription</a></p>';
+      }
+  }
+
+  function renderAdminContent(details, permissions, navDiv) {
+      if (permissions.has('admin:kyc:read') && navDiv) {
+          navDiv.innerHTML = '<p><a href="/admin/kyc-dashboard">KYC Management Dashboard</a></p>';
+      }
+  }
+
+  function renderGoogleLink(details) {
+      const googleSection = document.getElementById('google-link-section');
+      if (!googleSection) return;
+
+      if (details.user.hasGoogleAccount) {
+          googleSection.innerHTML = `
+              <h3>Google Account</h3>
+              <p style="color: green;">Your account is successfully linked to Google.</p>
+          `;
+      } else {
+          googleSection.innerHTML = `
+              <h3>Google Account</h3>
+              <p>You can link your Google account for easy sign-in.</p>
+             <a href="#" id="link-google-btn" style="font-weight: 600;">Link Google Account</a>
+          `;
+      }
+  }
+
+  document.getElementById('logout-button').addEventListener('click', logout);
+
+  document.addEventListener('click', function(event) {
+      if (event.target && event.target.id === 'link-google-btn') {
+          event.preventDefault();
+          const tokens = getToken();
+          if (tokens && tokens.accessToken) {
+
+              window.location.href = `/profile/link-google?token=${tokens.accessToken}`;
+          } else {
+              logout();
+          }
+      }
+  });
+</script>
+</body>
+</html>

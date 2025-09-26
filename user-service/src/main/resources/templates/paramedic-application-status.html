@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Application Status</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background-color: #f0f2f5; }
+    .container { background-color: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); width: 100%; max-width: 500px; text-align: center; }
+    h2 { margin-bottom: 1.5rem; }
+    .status-info { border: 1px solid #e0e0e0; padding: 1em; margin-top: 1em; border-radius: 8px; text-align: left; }
+    .status-pending { color: #007bff; }
+    .status-approved { color: #28a745; }
+    .status-rejected { color: #dc3545; }
+    .rejection-reason { background-color: #fff3cd; padding: 1rem; border-radius: 4px; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2>Your Application Status</h2>
+  <input type="hidden" id="email" th:value="${email}">
+  <div id="status-container">
+    <p>Loading status...</p>
+  </div>
+  <div id="resubmit-link-container" style="margin-top: 20px;"></div>
+</div>
+
+<script>
+  async function checkStatus() {
+      const email = document.getElementById('email').value;
+      const statusContainer = document.getElementById('status-container');
+      const resubmitContainer = document.getElementById('resubmit-link-container');
+
+      try {
+          const response = await fetch(`/api/public/kyc/applications?email=${encodeURIComponent(email)}`);
+
+          if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.message || `Server error: ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          let statusText = data.applicationStatus.replace('_', ' ').toLowerCase();
+          statusText = statusText.charAt(0).toUpperCase() + statusText.slice(1);
+
+          let statusClass = '';
+          if (data.applicationStatus === 'PENDING_REVIEW' || data.applicationStatus === 'PENDING_EMAIL_VERIFICATION') statusClass = 'status-pending';
+          if (data.applicationStatus === 'APPROVED') statusClass = 'status-approved';
+          if (data.applicationStatus === 'REJECTED') statusClass = 'status-rejected';
+
+          let html = `<div class="status-info">`;
+          html += `<p><strong>Status:</strong> <span class="${statusClass}">${statusText}</span></p>`;
+
+          if (data.applicationStatus === 'PENDING_EMAIL_VERIFICATION') {
+              html += `<p>Please check your email to verify your application.</p>`;
+          }
+          if (data.applicationStatus === 'PENDING_REVIEW') {
+              html += `<p>Your application is under review. You will be notified by email once a decision is made.</p>`;
+          }
+          if (data.applicationStatus === 'APPROVED') {
+              html += `<p>Congratulations! Your application has been approved. Please check your email for your new account credentials.</p>`;
+          }
+          if (data.applicationStatus === 'REJECTED') {
+              html += `<p>We're sorry, your application was not approved at this time.</p>`;
+              if (data.rejectionReason) {
+                  html += `<div class="rejection-reason"><strong>Reason:</strong> ${data.rejectionReason}</div>`;
+                  resubmitContainer.innerHTML = `<a href="/paramedic/kyc-form?email=${encodeURIComponent(email)}">Resubmit Application</a>`;
+              }
+          }
+
+          html += `</div>`;
+          statusContainer.innerHTML = html;
+
+      } catch (error) {
+          statusContainer.innerHTML = `<p style="color: red;">${error.message}</p>`;
+      }
+  }
+
+  document.addEventListener('DOMContentLoaded', checkStatus);
+</script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+server:
+  port: 8088
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    discovery:
+      client:
+        simple:
+          instances:
+            user-service:
+              - uri: http://user-service:8080
+            billing-service:
+              - uri: http://billing-service:8082
+
+app:
+  jwt:
+    secret-key: <same-key-as-in-user-service>
+
+  services:
+    user-service: http://user-service:8080
+    billing-service: http://billing-service:8082
+
+logging:
+  level:
+    ifortex.shuman.uladzislau.gateway: DEBUG
+    org.springframework.cloud.gateway: TRACE

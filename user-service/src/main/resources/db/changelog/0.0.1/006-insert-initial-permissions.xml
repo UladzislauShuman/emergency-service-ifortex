@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet id="1-insert-permissions" author="uladzislau.shuman">
+    <!-- Admin User Permissions -->
+    <insert tableName="permissions"><column name="name" value="admin:user:read"/></insert>
+
+    <insert tableName="permissions"><column name="name" value="admin:user:create"/></insert>
+    <insert tableName="permissions"><column name="name" value="admin:create:client"/></insert>
+    <insert tableName="permissions"><column name="name" value="admin:create:paramedic"/></insert>
+    <insert tableName="permissions"><column name="name" value="admin:create:admin"/></insert>
+    <insert tableName="permissions"><column name="name" value="admin:create:super_admin"/></insert>
+
+    <insert tableName="permissions"><column name="name" value="admin:user:reset-password:reset-link"/></insert>
+    <insert tableName="permissions"><column name="name" value="admin:user:reset-password:generate-temp"/></insert>
+
+    <insert tableName="permissions"><column name="name" value="admin:user:update"/></insert>
+    <insert tableName="permissions"><column name="name" value="admin:user:delete:soft"/></insert>
+    <insert tableName="permissions"><column name="name" value="admin:user:delete:hard"/></insert>
+    <insert tableName="permissions"><column name="name" value="admin:user:block"/></insert>
+    <insert tableName="permissions"><column name="name" value="admin:user:unblock"/></insert>
+    <insert tableName="permissions"><column name="name" value="subscription:create"/></insert>
+    <insert tableName="permissions"><column name="name" value="subscription:manage"/></insert>
+  </changeSet>
+
+  <changeSet id="3-link-roles-to-permissions" author="uladzislau.shuman">
+    <!-- ADMIN Role Permissions -->
+    <sql>
+      INSERT INTO roles_permissions (role_id, permission_id)
+      SELECT (SELECT id FROM roles WHERE name = 'ROLE_ADMIN'), p.id
+      FROM permissions p
+      WHERE p.name IN (
+      'admin:user:read', 'admin:user:update', 'admin:user:delete:soft', 'admin:user:block',
+      'admin:user:reset-password', 'admin:create:client',
+      'admin:create:paramedic',
+      'admin:user:reset-password:reset-link',
+      'admin:user:reset-password:generate-temp'
+      );
+    </sql>
+
+    <!-- SUPER_ADMIN Role Permissions -->
+    <sql>
+      INSERT INTO roles_permissions (role_id, permission_id)
+      SELECT (SELECT id FROM roles WHERE name = 'ROLE_SUPER_ADMIN'), p.id
+      FROM permissions p
+      WHERE p.name IN (
+      'admin:user:read', 'admin:user:create', 'admin:user:update', 'admin:user:delete:soft',
+      'admin:user:delete:hard', 'admin:user:block', 'admin:user:reset-password', 'admin:user:unblock',
+      'admin:create:client',
+      'admin:create:paramedic',
+      'admin:create:admin',
+      'admin:create:super_admin',
+      'admin:user:reset-password:reset-link',
+      'admin:user:reset-password:generate-temp'
+      );
+    </sql>
+  </changeSet>
+
+  <changeSet id="5-add-kyc-permissions" author="uladzislau.shuman">
+    <!-- paramedic's KYC -->
+    <insert tableName="permissions"><column name="name" value="admin:kyc:read"/></insert>
+    <insert tableName="permissions"><column name="name" value="admin:kyc:manage"/></insert>
+
+    <sql>
+      INSERT INTO roles_permissions (role_id, permission_id)
+      SELECT
+      r.id,
+      p.id
+      FROM permissions p, roles r
+      WHERE r.name IN ('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')
+      AND p.name IN (
+      'admin:kyc:read',
+      'admin:kyc:manage'
+      );
+    </sql>
+  </changeSet>
+
+  <changeSet id="6-add-paramedic-role-permissions" author="uladzislau.shuman">
+    <insert tableName="permissions">
+      <column name="name" value="paramedic:emergency:accept"/>
+      <column name="description" value="Allow paramedic to accept incoming emergency calls"/>
+    </insert>
+
+    <sql>
+      INSERT INTO roles_permissions (role_id, permission_id)
+      SELECT
+      (SELECT id FROM roles WHERE name = 'ROLE_PARAMEDIC'),
+      p.id
+      FROM permissions p
+      WHERE p.name IN (
+      'paramedic:emergency:accept'
+      );
+    </sql>
+  </changeSet>
+
+</databaseChangeLog>

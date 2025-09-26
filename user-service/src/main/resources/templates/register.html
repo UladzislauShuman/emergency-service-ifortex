@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Register</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background-color: #f0f2f5; }
+    .container { background-color: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); width: 100%; max-width: 420px; text-align: center; }
+    h2 { margin-bottom: 1.5rem; }
+    .role-selection { margin-bottom: 2rem; }
+    .role-selection button { width: 100%; padding: 1rem; font-size: 1.2rem; margin-bottom: 1rem; cursor: pointer; border-radius: 8px; border: 2px solid; transition: all 0.2s; }
+    .client-btn { background-color: #007bff; color: white; border-color: #007bff; }
+    .client-btn:hover { background-color: #0056b3; }
+    .paramedic-btn { background-color: transparent; color: #28a745; border-color: #28a745; }
+    .paramedic-btn:hover { background-color: #28a745; color: white; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2>Choose Your Role</h2>
+  <div class="role-selection">
+    <button class="client-btn" onclick="location.href='/client-register'">Register as a Client</button>
+    <button class="paramedic-btn" onclick="location.href='/paramedic/kyc-form'">Apply to be a Paramedic</button>
+  </div>
+  <p>Already have an account? <a href="/login">Login</a></p>
+</div>
+</body>
+</html>

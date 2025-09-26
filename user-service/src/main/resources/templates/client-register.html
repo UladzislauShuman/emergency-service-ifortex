@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Client Registration</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background-color: #f0f2f5; padding: 20px 0; }
+    .register-container { background-color: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); width: 100%; max-width: 420px; text-align: center; }
+    h2 { margin-bottom: 1.5rem; color: #333; }
+    .form-group { margin-bottom: 1rem; text-align: left; }
+    label { display: block; margin-bottom: 0.5rem; color: #555; font-weight: 500; }
+    input { width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    button { width: 100%; padding: 0.75rem; border: none; border-radius: 4px; background-color: #007bff; color: white; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+    button:disabled { background-color: #9acbff; cursor: not-allowed; }
+    .error-message { color: #d93025; margin-bottom: 1rem; min-height: 1.2em; font-size: 0.9rem; text-align: left; }
+    .links { margin-top: 1rem; font-size: 0.9rem; }
+    .links a { color: #007bff; text-decoration: none; }
+  </style>
+</head>
+<body>
+<div class="register-container">
+  <form id="register-form">
+    <h2>Register as a Client</h2>
+    <div id="error-message" class="error-message"></div>
+
+    <div class="form-group">
+      <label for="fullName">Full Name:</label>
+      <input type="text" id="fullName" name="fullName" required>
+    </div>
+    <div class="form-group">
+      <label for="email">Email:</label>
+      <input type="email" id="email" name="email" required>
+    </div>
+    <div class="form-group">
+      <label for="phone">Phone Number:</label>
+      <input type="tel" id="phone" name="phone" placeholder="+1234567890" required>
+    </div>
+    <div class="form-group">
+      <label for="password">Password:</label>
+      <input type="password" id="password" name="password" required>
+    </div>
+    <div class="form-group">
+      <label for="passwordConfirmation">Confirm Password:</label>
+      <input type="password" id="passwordConfirmation" name="passwordConfirmation" required>
+    </div>
+
+    <button id="submit-button" type="submit">Create Account</button>
+  </form>
+  <div class="links">
+    <p>Already have an account? <a href="/login">Login</a></p>
+  </div>
+</div>
+<script>
+  const registerForm = document.getElementById('register-form');
+  const errorMessageDiv = document.getElementById('error-message');
+  const submitButton = document.getElementById('submit-button');
+
+  registerForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      submitButton.disabled = true;
+      submitButton.textContent = 'Registering...';
+      errorMessageDiv.textContent = '';
+      errorMessageDiv.innerHTML = '';
+
+      const formData = new FormData(registerForm);
+      const payload = Object.fromEntries(formData.entries());
+      payload.role = 'ROLE_CLIENT';
+
+      if (payload.password !== payload.passwordConfirmation) {
+          errorMessageDiv.textContent = 'Passwords do not match.';
+          submitButton.disabled = false;
+          submitButton.textContent = 'Create Account';
+          return;
+      }
+
+      try {
+          const response = await fetch('/api/auth/registration', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+          });
+
+          if (response.ok) {
+              window.location.href = `/verify-email?email=${encodeURIComponent(payload.email)}`;
+          } else {
+              const errorData = await response.json();
+              if (errorData.details && errorData.details.length > 0) {
+                  const errorList = errorData.details.map(detail => `<li>${detail}</li>`).join('');
+                  errorMessageDiv.innerHTML = `<ul>${errorList}</ul>`;
+              } else {
+                  errorMessageDiv.textContent = errorData.message || 'Registration failed.';
+              }
+          }
+      } catch (error) {
+          errorMessageDiv.textContent = 'An unexpected error occurred. Please try again.';
+      } finally {
+          submitButton.disabled = false;
+          submitButton.textContent = 'Create Account';
+      }
+  });
+</script>
+</body>
+</html>

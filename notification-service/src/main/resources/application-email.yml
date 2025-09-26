@@ -1,0 +1,39 @@
+application:
+  email:
+    from-address: uladzislau.shuman@ifortex.com
+    from-name: Vlados
+    subjects:
+      email-verification: "Email Verification"
+      login-2fa: "Two-Factor Authentication"
+      password-reset: "Password Reset"
+      email-change: "Email Change Confirmation"
+      password-reset-link: "Password Reset Request"
+      temporary-password: "Your New Account Credentials"
+      email-change-alert: "Security Alert: Email Change Request"
+      kyc-approval: "Your Paramedic Application has been Approved"
+      kyc-rejection: "Action Required on Your Paramedic Application"
+      paramedic-kyc-approval-with-credentials: "Your Paramedic Account is Ready!"
+    bodies:
+      email-verification: "Welcome! Your verification code is: %s. It is valid for 24 hours."
+      login-2fa: "Your two-factor authentication code is: %s. It is valid for 10 minutes."
+      password-reset: "Your password reset code is: %s. It is valid for 15 minutes."
+      email-change: "Your email change confirmation code is: %s. It is valid for 10 minutes."
+      password-reset-link: "Please click the link to reset your password: %s"
+      temporary-password: "An account has been created for you. Your temporary password is: %s\n\nYou will be required to change it upon your first login."
+      email-change-alert: "This is a notification that a request has been made to change the email address for your account from %s to %s.\n\nIf this was you, you can ignore this message.\n\nIf you did NOT make this request, please secure your account immediately by changing your password."
+      default-otp-fallback: "Your confirmation code is: %s"
+      kyc-approval: "Congratulations, %s!\n\nYour paramedic application has been successfully verified. Your account is now fully active, and you can access all paramedic features."
+      kyc-rejection: "Hello %s,\n\nWe have reviewed your paramedic application and require additional information. The reason provided by our team is:\n\n\"%s\"\n\nPlease log back into your account to resubmit your documents with the necessary corrections."
+      paramedic-kyc-approval-with-credentials: >
+             Hello %s,
+      
+             Congratulations! Your paramedic application has been approved.
+    
+             A new corporate account has been created for you. Please use the following credentials for your work email:
+             - Email: %s
+             - Password: %s
+
+             IMPORTANT: A separate email with a temporary password for your application account has been sent to your new work email address (%s). You will be required to change it upon your first login.
+      
+             Thank you,
+             The Team

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <include file="0.0.1/000-create-tables.xml" relativeToChangelogFile="true"/>
+    <include file="0.0.1/001-add-partial-unique-index-for-user-email.xml" relativeToChangelogFile="true"/>
+    <include file="0.0.1/002-insert-initial-data.xml" relativeToChangelogFile="true"/>
+    <include file="0.0.1/005-add-permissions-schema.xml" relativeToChangelogFile="true"/>
+    <include file="0.0.1/006-insert-initial-permissions.xml" relativeToChangelogFile="true"/>
+    <include file="0.0.1/010-create-paramedic-tables.xml" relativeToChangelogFile="true"/>
+    <include file="0.0.1/011-add-cascade-delete-to-fk.xml" relativeToChangelogFile="true"/>
+</databaseChangeLog>
